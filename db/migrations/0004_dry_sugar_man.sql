@@ -1,0 +1,2 @@
+ALTER TABLE "account" ALTER COLUMN "access_token_expires_at" SET DEFAULT '2025-08-23 13:37:57.592';--> statement-breakpoint
+ALTER TABLE "account" ALTER COLUMN "refresh_token_expires_at" SET DEFAULT '2025-08-23 13:37:57.592';

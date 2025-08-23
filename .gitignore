@@ -47,3 +47,4 @@ bun.lock
 bun.lockb
 
 package-lock.json
+bun.lock

@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1755829732714,
+      "tag": "0000_whole_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755873892372,
+      "tag": "0001_opposite_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755874677355,
+      "tag": "0002_chemical_firestar",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755920962113,
+      "tag": "0003_wealthy_newton_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755956277614,
+      "tag": "0004_dry_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755956406906,
+      "tag": "0005_flashy_crusher_hogan",
+      "breakpoints": true
+    }
+  ]
+}

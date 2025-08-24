@@ -23,7 +23,7 @@ export const courseSchema = z.object({
     .string()
     .min(3, { message: "Title must be at least 3 characters" })
     .max(255, { message: "Title must be less than 255 characters" }),
-  description: z.object({}).passthrough(),
+  description: z.string().or(z.object()),
 
   fileKey: z.string().min(1, { message: "File is required" }),
   price: z.coerce.number().min(1, { message: "Price must be greater than 0" }),

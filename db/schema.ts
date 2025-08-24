@@ -52,12 +52,12 @@ export const account = pgTable("account", {
   providerId: varchar("provider_id", { length: 255 }).notNull(),
   accessToken: text("access_token").default(""),
   refreshToken: text("refresh_token").default(""),
-  accessTokenExpiresAt: timestamp("access_token_expires_at").default(
-    new Date()
-  ),
-  refreshTokenExpiresAt: timestamp("refresh_token_expires_at").default(
-    new Date()
-  ),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", {
+    withTimezone: true,
+  }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+    withTimezone: true,
+  }),
   scope: text("scope").default(""),
   idToken: text("id_token").default(""),
   password: text("password").default(""),
@@ -99,19 +99,71 @@ export const course = pgTable("course", {
   // relations
   userId: varchar("user_id", { length: 255 })
     .notNull()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: "cascade" }),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const chapter = pgTable("chapter", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  title: varchar("title", { length: 255 }).notNull(),
+  position: integer("position").notNull(),
+
+  courseId: uuid("course_id")
+    .notNull()
+    .references(() => course.id, { onDelete: "cascade" }),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const lesson = pgTable("lesson", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  title: varchar("title", { length: 255 }).notNull(),
+  description: jsonb("description"),
+  thumbnailKey: varchar("thumbnail_url", { length: 255 }),
+  videoKey: varchar("video_url", { length: 255 }),
+
+  position: integer("position").notNull(),
+
+  chapterId: uuid("chapter_id")
+    .notNull()
+    .references(() => chapter.id, { onDelete: "cascade" }),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// user relations
 export const usersRelations = relations(user, ({ many }) => ({
   courses: many(course),
 }));
 
-export const coursesRelations = relations(course, ({ one }) => ({
+// chapter relations
+export const chaptersRelations = relations(chapter, ({ one, many }) => ({
+  course: one(course, {
+    fields: [chapter.courseId],
+    references: [course.id],
+  }),
+  lessons: many(lesson),
+}));
+
+// lesson relations
+export const lessonsRelations = relations(lesson, ({ one }) => ({
+  chapter: one(chapter, {
+    fields: [lesson.chapterId],
+    references: [chapter.id],
+  }),
+}));
+
+// course relations
+export const coursesRelations = relations(course, ({ one, many }) => ({
   user: one(user, {
     fields: [course.userId],
     references: [user.id],
   }),
+  chapters: many(chapter),
 }));

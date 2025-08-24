@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import * as Sentry from "@sentry/nextjs";
+import { useConstructUrl } from "@/hooks/use-construct-url";
 
 interface UploaderState {
   id: string | null;
@@ -32,6 +33,8 @@ interface iAppProps {
 }
 
 export default function FileUploader({ onChange, value }: iAppProps) {
+  const fileUrl = useConstructUrl(value || "");
+
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
     file: null,
@@ -41,6 +44,7 @@ export default function FileUploader({ onChange, value }: iAppProps) {
     isDeleting: false,
     fileType: "image",
     key: value,
+    objectUrl: fileUrl,
   });
 
   async function uploadFile(file: File) {

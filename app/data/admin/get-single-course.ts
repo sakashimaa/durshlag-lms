@@ -1,8 +1,8 @@
 import "server-only";
 import { requireAdmin } from "./require-admin";
 import { db } from "@/db";
-import { course } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { chapter, course, lesson } from "@/db/schema";
+import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 export async function getSingleCourse(id: string) {
@@ -25,6 +25,7 @@ export async function getSingleCourse(id: string) {
     },
     with: {
       chapters: {
+        orderBy: asc(chapter.position),
         columns: {
           id: true,
           title: true,
@@ -32,6 +33,7 @@ export async function getSingleCourse(id: string) {
         },
         with: {
           lessons: {
+            orderBy: asc(lesson.position),
             columns: {
               id: true,
               title: true,

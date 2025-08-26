@@ -59,10 +59,10 @@ export const lessonSchema = z.object({
   courseId: z.uuid({ message: "Invalid course ID" }),
   chapterId: z.uuid({ message: "Invalid chapter ID" }),
 
-  description: z.string().min(3, { message: "Description must be at least 3 characters" }).optional(),
+  description: z.string().or(z.object({})).optional(),
   thumbnailKey: z.string().optional(),
   videoKey: z.string().optional(),
-})
+});
 
 export type CourseSchema = z.infer<typeof courseSchema>;
 export type ChapterSchema = z.infer<typeof chapterSchema>;

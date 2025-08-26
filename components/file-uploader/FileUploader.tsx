@@ -30,9 +30,14 @@ interface UploaderState {
 interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
+  fileTypeAccepted: "image" | "video";
 }
 
-export default function FileUploader({ onChange, value }: iAppProps) {
+export default function FileUploader({
+  onChange,
+  value,
+  fileTypeAccepted,
+}: iAppProps) {
   const fileUrl = useConstructUrl(value || "");
 
   const [fileState, setFileState] = useState<UploaderState>({
@@ -42,105 +47,108 @@ export default function FileUploader({ onChange, value }: iAppProps) {
     uploading: false,
     progress: 0,
     isDeleting: false,
-    fileType: "image",
+    fileType: fileTypeAccepted,
     key: value,
-    objectUrl: fileUrl,
+    objectUrl: value ? fileUrl : undefined,
   });
 
-  async function uploadFile(file: File) {
-    setFileState((prev) => ({
-      ...prev,
-      uploading: true,
-      progress: 0,
-    }));
+  const uploadFile = useCallback(
+    async (file: File) => {
+      setFileState((prev) => ({
+        ...prev,
+        uploading: true,
+        progress: 0,
+      }));
 
-    try {
-      // 1. Get presigned url
-      const resp = await fetch("/api/s3/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type,
-          size: file.size,
-          isImage: file.type.startsWith("image/"),
-        }),
-      });
+      try {
+        // 1. Get presigned url
+        const resp = await fetch("/api/s3/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            size: file.size,
+            isImage: fileTypeAccepted === "image" ? true : false,
+          }),
+        });
 
-      if (!resp.ok) {
-        toast.error("Failed to get presigned url");
-        setFileState((prev) => ({
-          ...prev,
-          uploading: false,
-          progress: 0,
-          error: true,
-        }));
+        if (!resp.ok) {
+          toast.error("Failed to get presigned url");
+          setFileState((prev) => ({
+            ...prev,
+            uploading: false,
+            progress: 0,
+            error: true,
+          }));
 
-        return;
-      }
+          return;
+        }
 
-      const { presignedUrl, key } = await resp.json();
+        const { presignedUrl, key } = await resp.json();
 
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            setFileState((prev) => ({
-              ...prev,
-              progress: Math.round(progress),
-              uploading: true,
-              error: false,
-            }));
-          }
-        };
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const progress = (event.loaded / event.total) * 100;
+              setFileState((prev) => ({
+                ...prev,
+                progress: Math.round(progress),
+                uploading: true,
+                error: false,
+              }));
+            }
+          };
 
-        xhr.onload = () => {
-          if (xhr.status === 200 || xhr.status === 204) {
-            setFileState((prev) => ({
-              ...prev,
-              progress: 100,
-              uploading: false,
-              error: false,
-              key,
-            }));
+          xhr.onload = () => {
+            if (xhr.status === 200 || xhr.status === 204) {
+              setFileState((prev) => ({
+                ...prev,
+                progress: 100,
+                uploading: false,
+                error: false,
+                key,
+              }));
 
-            onChange?.(key);
+              onChange?.(key);
 
-            toast.success("File uploaded successfully");
-            resolve();
-          } else {
+              toast.success("File uploaded successfully");
+              resolve();
+            } else {
+              const error = new Error("Failed to upload file");
+              Sentry.captureException(error);
+              reject(error);
+            }
+          };
+
+          xhr.onerror = () => {
             const error = new Error("Failed to upload file");
             Sentry.captureException(error);
             reject(error);
-          }
-        };
+          };
 
-        xhr.onerror = () => {
-          const error = new Error("Failed to upload file");
-          Sentry.captureException(error);
-          reject(error);
-        };
+          xhr.open("PUT", presignedUrl);
+          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.send(file);
+        });
+      } catch (err) {
+        Sentry.captureException(err);
+        toast.error("Failed to upload file");
 
-        xhr.open("PUT", presignedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
-        xhr.send(file);
-      });
-    } catch (err) {
-      Sentry.captureException(err);
-      toast.error("Failed to upload file");
-
-      setFileState((prev) => ({
-        ...prev,
-        progress: 0,
-        uploading: false,
-        error: true,
-      }));
-    }
-  }
+        setFileState((prev) => ({
+          ...prev,
+          progress: 0,
+          uploading: false,
+          error: true,
+        }));
+      }
+    },
+    [fileTypeAccepted, onChange]
+  );
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -155,13 +163,13 @@ export default function FileUploader({ onChange, value }: iAppProps) {
           error: false,
           id: uuidv4(),
           isDeleting: false,
-          fileType: "image",
+          fileType: fileTypeAccepted,
         });
 
         uploadFile(file);
       }
     },
-    [fileState.objectUrl] // !important
+    [fileState.objectUrl, uploadFile, fileTypeAccepted]
   );
 
   async function handleRemoveFile() {
@@ -208,7 +216,7 @@ export default function FileUploader({ onChange, value }: iAppProps) {
         progress: 0,
         objectUrl: undefined,
         error: false,
-        fileType: "image",
+        fileType: fileTypeAccepted,
         id: null,
         isDeleting: false,
       }));
@@ -269,6 +277,7 @@ export default function FileUploader({ onChange, value }: iAppProps) {
           previewUrl={fileState.objectUrl}
           isDeleting={fileState.isDeleting}
           handleRemoveFile={handleRemoveFile}
+          fileType={fileState.fileType}
         />
       );
     }
@@ -286,10 +295,12 @@ export default function FileUploader({ onChange, value }: iAppProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [] },
+    accept:
+      fileTypeAccepted === "video" ? { "video/*": [] } : { "image/*": [] },
     maxFiles: 1,
     multiple: false,
-    maxSize: 1024 * 1024 * 5, // 5 MB
+    maxSize:
+      fileTypeAccepted === "image" ? 5 * 1024 * 1024 : 5000 * 1024 * 1024,
     onDropRejected,
     disabled: fileState.uploading || !!fileState.isDeleting,
   });
